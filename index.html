@@ -2,19 +2,23 @@
 <html lang="ru">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Neon Motion — Animated Landing</title>
-
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Nova — Interactive Landing</title>
+  <meta name="description" content="Современный интерактивный лендинг с анимациями и эффектами курсора." />
   <style>
     :root{
-      --bg0:#070A12;
-      --bg1:#0B1224;
-      --text:#EAF0FF;
-      --muted:rgba(234,240,255,.72);
-      --card:rgba(255,255,255,.06);
-      --stroke:rgba(255,255,255,.10);
-      --glow: rgba(142, 84, 255, .35);
-      --glow2: rgba(0, 208, 255, .25);
+      --bg0:#06070b;
+      --bg1:#0a1020;
+      --glass: rgba(255,255,255,.08);
+      --glass2: rgba(255,255,255,.12);
+      --stroke: rgba(255,255,255,.14);
+      --text: rgba(255,255,255,.92);
+      --muted: rgba(255,255,255,.66);
+      --shadow: 0 30px 80px rgba(0,0,0,.45);
+      --radius: 22px;
+      --accentA:#7c3aed; /* purple */
+      --accentB:#22d3ee; /* cyan  */
+      --accentC:#f59e0b; /* amber */
     }
 
     *{ box-sizing:border-box; }
@@ -22,648 +26,771 @@
     body{
       margin:0;
       color:var(--text);
-      background:
-        radial-gradient(1200px 600px at 10% 10%, rgba(142,84,255,.18), transparent 55%),
-        radial-gradient(1000px 700px at 90% 20%, rgba(0,208,255,.16), transparent 60%),
-        radial-gradient(900px 700px at 50% 90%, rgba(255, 76, 160, .12), transparent 60%),
-        linear-gradient(180deg, var(--bg0), var(--bg1));
+      background: radial-gradient(1200px 800px at 10% 10%, rgba(124,58,237,.25), transparent 55%),
+                  radial-gradient(900px 600px at 85% 20%, rgba(34,211,238,.20), transparent 55%),
+                  radial-gradient(900px 700px at 50% 95%, rgba(245,158,11,.10), transparent 60%),
+                  linear-gradient(180deg, var(--bg0), var(--bg1));
       overflow-x:hidden;
       font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, "Apple Color Emoji","Segoe UI Emoji";
+      letter-spacing: .2px;
     }
 
-    /* ====== Cursor glow follower ====== */
-    .cursor-glow{
-      position:fixed;
-      inset:auto;
-      width:520px;
-      height:520px;
-      transform: translate(-50%, -50%);
+    /* --- animated gradient sheen --- */
+    .sheen{
+      position:fixed; inset:-20%;
+      background: conic-gradient(from 180deg, rgba(124,58,237,.10), rgba(34,211,238,.10), rgba(245,158,11,.08), rgba(124,58,237,.10));
+      filter: blur(60px);
+      opacity:.55;
+      animation: spin 18s linear infinite;
       pointer-events:none;
       z-index:0;
-      background: radial-gradient(circle at center, rgba(142,84,255,.22), rgba(0,208,255,.12), transparent 60%);
-      filter: blur(14px);
-      opacity:.0;
-      transition: opacity .4s ease;
-      mix-blend-mode: screen;
     }
+    @keyframes spin{ to{ transform: rotate(360deg); } }
 
-    /* ====== Floating blobs ====== */
-    .blob{
-      position:fixed;
-      width:520px; height:520px;
-      border-radius: 999px;
-      filter: blur(26px);
+    /* --- subtle noise overlay --- */
+    .noise{
+      position:fixed; inset:0;
+      background-image:
+        radial-gradient(circle at 20% 30%, rgba(255,255,255,.05) 0 1px, transparent 2px),
+        radial-gradient(circle at 80% 70%, rgba(255,255,255,.04) 0 1px, transparent 2px),
+        radial-gradient(circle at 40% 80%, rgba(255,255,255,.03) 0 1px, transparent 2px);
+      background-size: 180px 180px, 220px 220px, 260px 260px;
       opacity:.35;
-      z-index:0;
+      mix-blend-mode: overlay;
+      pointer-events:none;
+      z-index:1;
+      animation: drift 10s ease-in-out infinite alternate;
+    }
+    @keyframes drift{
+      from{ transform: translate3d(-1%, -1%, 0); }
+      to{ transform: translate3d(1%, 1%, 0); }
+    }
+
+    /* --- canvas particles --- */
+    #trailCanvas{
+      position:fixed; inset:0;
+      width:100%; height:100%;
+      z-index:2;
+      pointer-events:none;
+    }
+
+    /* --- cursor elements --- */
+    .cursorDot, .cursorRing, .orb{
+      position:fixed;
+      left:0; top:0;
+      transform: translate3d(-100px,-100px,0);
+      pointer-events:none;
+      z-index:6;
+      will-change: transform;
+    }
+    .cursorDot{
+      width:8px; height:8px; border-radius:999px;
+      background: rgba(255,255,255,.9);
+      box-shadow: 0 0 18px rgba(34,211,238,.35);
       mix-blend-mode: screen;
-      animation: float 10s ease-in-out infinite;
     }
-    .blob.b1{
-      left:-160px; top:120px;
-      background: radial-gradient(circle at 30% 30%, rgba(142,84,255,.85), transparent 60%);
-      animation-duration: 13s;
+    .cursorRing{
+      width:42px; height:42px; border-radius:999px;
+      border: 1px solid rgba(255,255,255,.22);
+      background: radial-gradient(circle, rgba(34,211,238,.08), transparent 60%);
+      box-shadow: 0 0 40px rgba(124,58,237,.18);
+      mix-blend-mode: screen;
+      transition: transform .15s ease;
     }
-    .blob.b2{
-      right:-170px; top:40px;
-      background: radial-gradient(circle at 70% 30%, rgba(0,208,255,.85), transparent 60%);
-      animation-duration: 15s;
-      animation-delay: -3s;
-    }
-    .blob.b3{
-      left:25%; bottom:-220px;
-      background: radial-gradient(circle at 50% 60%, rgba(255,76,160,.75), transparent 62%);
-      animation-duration: 17s;
-      animation-delay: -6s;
-    }
-
-    @keyframes float{
-      0%{ transform: translate3d(0,0,0) scale(1); }
-      50%{ transform: translate3d(40px,-25px,0) scale(1.05); }
-      100%{ transform: translate3d(0,0,0) scale(1); }
+    .orb{
+      width:140px; height:140px; border-radius:999px;
+      background: radial-gradient(circle at 30% 30%, rgba(34,211,238,.25), transparent 55%),
+                  radial-gradient(circle at 70% 70%, rgba(124,58,237,.22), transparent 60%),
+                  radial-gradient(circle at 50% 50%, rgba(245,158,11,.10), transparent 60%);
+      filter: blur(12px);
+      opacity:.75;
+      mix-blend-mode: screen;
+      z-index:3;
     }
 
-    /* ====== Layout ====== */
+    /* --- layout --- */
     .wrap{
       position:relative;
-      z-index:1;
+      z-index:4;
       min-height:100%;
-      padding: 44px 18px 70px;
-      display:flex;
-      justify-content:center;
+      padding: 28px 18px 72px;
     }
-
     .container{
-      width:min(1100px, 100%);
-      display:grid;
-      gap: 26px;
+      max-width: 1120px;
+      margin:0 auto;
     }
 
-    header{
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      gap:12px;
+    /* --- top nav --- */
+    .nav{
+      display:flex; align-items:center; justify-content:space-between;
+      gap:16px;
+      padding: 14px 16px;
+      border: 1px solid var(--stroke);
+      border-radius: 18px;
+      background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.03));
+      backdrop-filter: blur(12px);
+      box-shadow: 0 10px 40px rgba(0,0,0,.25);
     }
-
     .brand{
-      display:flex;
-      align-items:center;
-      gap:12px;
-      user-select:none;
+      display:flex; align-items:center; gap:10px;
+      font-weight: 700;
+      letter-spacing: .6px;
     }
     .logo{
-      width:42px; height:42px;
-      border-radius: 14px;
-      background: linear-gradient(135deg, rgba(142,84,255,1), rgba(0,208,255,1));
-      box-shadow: 0 0 0 1px rgba(255,255,255,.14) inset, 0 18px 45px rgba(142,84,255,.25);
+      width: 34px; height:34px; border-radius: 12px;
+      background: linear-gradient(135deg, rgba(34,211,238,.9), rgba(124,58,237,.9));
+      box-shadow: 0 0 30px rgba(34,211,238,.20);
       position:relative;
       overflow:hidden;
     }
     .logo::after{
       content:"";
-      position:absolute;
-      inset:-40%;
+      position:absolute; inset:-40%;
       background: linear-gradient(90deg, transparent, rgba(255,255,255,.35), transparent);
       transform: rotate(25deg);
-      animation: shine 2.8s linear infinite;
-      opacity:.65;
+      animation: shine 2.8s ease-in-out infinite;
     }
     @keyframes shine{
-      0%{ transform: translateX(-60%) rotate(25deg); }
-      100%{ transform: translateX(60%) rotate(25deg); }
+      0%{ transform: translateX(-60%) rotate(25deg); opacity:.0; }
+      30%{ opacity:.9; }
+      60%{ opacity:.9; }
+      100%{ transform: translateX(60%) rotate(25deg); opacity:0; }
     }
 
-    .brand b{ letter-spacing:.4px; font-size:15px; }
-    .nav{
-      display:flex;
-      gap:10px;
-      align-items:center;
+    .links{
+      display:flex; gap:10px; align-items:center;
       flex-wrap:wrap;
-      justify-content:flex-end;
     }
-
     .chip{
-      padding:10px 12px;
+      padding: 10px 12px;
       border-radius: 999px;
-      background: rgba(255,255,255,.05);
-      border: 1px solid rgba(255,255,255,.10);
+      border: 1px solid rgba(255,255,255,.14);
+      background: rgba(255,255,255,.04);
       color: var(--muted);
       font-size: 13px;
-      transition: transform .25s ease, background .25s ease, border-color .25s ease;
-      cursor:pointer;
+      transition: transform .2s ease, background .2s ease, border-color .2s ease;
       user-select:none;
     }
     .chip:hover{
       transform: translateY(-2px);
-      background: rgba(255,255,255,.08);
-      border-color: rgba(255,255,255,.16);
-      color: rgba(234,240,255,.9);
+      background: rgba(255,255,255,.07);
+      border-color: rgba(255,255,255,.22);
+      color: rgba(255,255,255,.82);
     }
 
-    /* ====== Hero Card (3D tilt) ====== */
+    /* --- hero --- */
     .hero{
-      border-radius: 26px;
-      background: linear-gradient(180deg, rgba(255,255,255,.07), rgba(255,255,255,.04));
-      border: 1px solid rgba(255,255,255,.10);
-      box-shadow:
-        0 18px 70px rgba(0,0,0,.42),
-        0 0 0 1px rgba(255,255,255,.04) inset;
-      overflow:hidden;
-      position:relative;
-      transform-style: preserve-3d;
-      will-change: transform;
-    }
-
-    .hero::before{
-      content:"";
-      position:absolute;
-      inset:-2px;
-      background:
-        radial-gradient(800px 300px at var(--mx,50%) var(--my,50%), rgba(142,84,255,.25), transparent 55%),
-        radial-gradient(700px 260px at calc(var(--mx,50%) + 12%) calc(var(--my,50%) + 8%), rgba(0,208,255,.22), transparent 58%);
-      opacity:.85;
-      filter: blur(0px);
-      z-index:0;
-      transition: opacity .25s ease;
-    }
-
-    .hero-inner{
-      position:relative;
-      z-index:1;
-      padding: 42px 34px;
       display:grid;
-      grid-template-columns: 1.3fr .7fr;
-      gap: 20px;
-      align-items:center;
+      grid-template-columns: 1.15fr .85fr;
+      gap: 26px;
+      margin-top: 22px;
+      align-items:stretch;
     }
 
-    @media (max-width: 900px){
-      .hero-inner{ grid-template-columns: 1fr; padding: 34px 22px; }
+    .panel{
+      border:1px solid var(--stroke);
+      border-radius: var(--radius);
+      background: linear-gradient(180deg, rgba(255,255,255,.07), rgba(255,255,255,.03));
+      backdrop-filter: blur(14px);
+      box-shadow: var(--shadow);
+      position:relative;
+      overflow:hidden;
+      transform-style: preserve-3d;
     }
 
-    .badge{
+    .panel::before{
+      content:"";
+      position:absolute; inset:-2px;
+      background:
+        radial-gradient(800px 260px at 20% 10%, rgba(34,211,238,.18), transparent 55%),
+        radial-gradient(600px 260px at 70% 0%, rgba(124,58,237,.18), transparent 55%),
+        radial-gradient(600px 300px at 60% 110%, rgba(245,158,11,.10), transparent 55%);
+      filter: blur(0px);
+      opacity:.9;
+      pointer-events:none;
+    }
+
+    .heroMain{
+      padding: 38px 34px 30px;
+    }
+
+    .kicker{
       display:inline-flex;
+      gap:8px;
       align-items:center;
-      gap:10px;
-      padding: 10px 12px;
+      padding: 8px 12px;
       border-radius: 999px;
-      background: rgba(0,0,0,.25);
-      border: 1px solid rgba(255,255,255,.10);
-      color: rgba(234,240,255,.85);
+      border: 1px solid rgba(255,255,255,.14);
+      background: rgba(255,255,255,.04);
+      color: rgba(255,255,255,.76);
       font-size: 13px;
-      width: fit-content;
-      transform: translateZ(20px);
     }
     .dot{
-      width:9px; height:9px;
-      border-radius: 99px;
-      background: #00D0FF;
-      box-shadow: 0 0 18px rgba(0,208,255,.65);
-      animation: pulse 1.6s ease-in-out infinite;
-    }
-    @keyframes pulse{
-      0%,100%{ transform: scale(1); opacity: .9; }
-      50%{ transform: scale(1.5); opacity: 1; }
+      width:8px; height:8px; border-radius:999px;
+      background: rgba(34,211,238,.9);
+      box-shadow: 0 0 16px rgba(34,211,238,.35);
     }
 
     h1{
-      margin: 14px 0 10px;
-      font-size: clamp(30px, 4.2vw, 56px);
-      line-height: 1.06;
-      letter-spacing: -0.02em;
-      transform: translateZ(28px);
+      margin: 16px 0 12px;
+      font-size: clamp(36px, 5vw, 58px);
+      line-height: 1.02;
+      letter-spacing: -0.8px;
     }
-
-    .grad{
-      background: linear-gradient(90deg, #8E54FF, #00D0FF, #FF4CA0);
-      -webkit-background-clip:text;
-      background-clip:text;
+    .gradText{
+      background: linear-gradient(90deg, rgba(34,211,238,.95), rgba(124,58,237,.95), rgba(245,158,11,.85));
+      -webkit-background-clip: text;
+      background-clip: text;
       color: transparent;
-      filter: drop-shadow(0 10px 28px rgba(142,84,255,.15));
+      filter: drop-shadow(0 16px 34px rgba(124,58,237,.22));
     }
 
     .lead{
-      margin: 0;
       color: var(--muted);
       font-size: 16px;
-      line-height: 1.7;
-      max-width: 60ch;
-      transform: translateZ(18px);
+      line-height: 1.6;
+      max-width: 56ch;
     }
 
     .actions{
-      margin-top: 20px;
+      margin-top: 22px;
       display:flex;
       gap: 12px;
-      flex-wrap:wrap;
-      transform: translateZ(22px);
+      flex-wrap: wrap;
+      align-items:center;
     }
 
     .btn{
       position:relative;
+      border: 1px solid rgba(255,255,255,.16);
+      background: rgba(255,255,255,.05);
+      color: rgba(255,255,255,.9);
       padding: 12px 16px;
-      border-radius: 14px;
-      border: 1px solid rgba(255,255,255,.12);
-      background: rgba(255,255,255,.06);
-      color: rgba(234,240,255,.92);
+      border-radius: 999px;
+      font-weight: 650;
+      letter-spacing: .2px;
       cursor:pointer;
-      font-weight: 600;
-      transition: transform .2s ease, border-color .2s ease, background .2s ease;
+      transition: transform .2s ease, box-shadow .2s ease, background .2s ease, border-color .2s ease;
       overflow:hidden;
       user-select:none;
     }
-    .btn:hover{ transform: translateY(-2px); border-color: rgba(255,255,255,.18); background: rgba(255,255,255,.08); }
-    .btn:active{ transform: translateY(0px) scale(.98); }
-
-    .btn.primary{
-      border: none;
-      background: linear-gradient(135deg, rgba(142,84,255,1), rgba(0,208,255,1));
-      color:#071025;
-      box-shadow: 0 14px 45px rgba(142,84,255,.25);
+    .btnPrimary{
+      background: linear-gradient(135deg, rgba(34,211,238,.22), rgba(124,58,237,.22));
+      border-color: rgba(255,255,255,.18);
+      box-shadow: 0 18px 45px rgba(34,211,238,.10);
     }
-
-    /* animated highlight follows mouse on buttons */
     .btn::after{
       content:"";
-      position:absolute;
-      inset:-40px;
-      background: radial-gradient(circle at var(--bx,50%) var(--by,50%), rgba(255,255,255,.30), transparent 40%);
-      opacity: 0;
+      position:absolute; inset:-40%;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,.35), transparent);
+      transform: translateX(-60%) rotate(25deg);
+      opacity:0;
       transition: opacity .2s ease;
     }
-    .btn:hover::after{ opacity: .9; }
-
-    /* ====== Right side mini panel ====== */
-    .panel{
-      border-radius: 22px;
-      background: rgba(0,0,0,.22);
-      border: 1px solid rgba(255,255,255,.10);
-      padding: 18px;
-      display:grid;
-      gap: 14px;
-      transform: translateZ(14px);
+    .btn:hover{
+      transform: translateY(-2px);
+      background: rgba(255,255,255,.08);
+      border-color: rgba(255,255,255,.26);
+      box-shadow: 0 24px 65px rgba(0,0,0,.35);
+    }
+    .btn:hover::after{
+      opacity: 1;
+      animation: btnshine 1.2s ease;
+    }
+    @keyframes btnshine{
+      from{ transform: translateX(-60%) rotate(25deg); }
+      to{ transform: translateX(60%) rotate(25deg); }
     }
 
-    .meter{
-      height: 10px;
-      border-radius: 999px;
-      background: rgba(255,255,255,.06);
-      overflow:hidden;
-      border: 1px solid rgba(255,255,255,.08);
-      position:relative;
-    }
-    .meter > i{
-      display:block;
-      height:100%;
-      width: 60%;
-      border-radius: 999px;
-      background: linear-gradient(90deg, rgba(142,84,255,1), rgba(0,208,255,1));
-      animation: load 2.6s ease-in-out infinite;
-    }
-    @keyframes load{
-      0%{ width: 18%; filter: brightness(1); }
-      50%{ width: 82%; filter: brightness(1.18); }
-      100%{ width: 18%; filter: brightness(1); }
-    }
-
-    .small{
+    .meta{
+      margin-top: 18px;
+      display:flex;
+      gap: 18px;
+      flex-wrap: wrap;
+      color: rgba(255,255,255,.62);
       font-size: 13px;
-      color: rgba(234,240,255,.72);
-      line-height:1.5;
+    }
+    .meta b{ color: rgba(255,255,255,.88); font-weight:700; }
+
+    /* --- side card --- */
+    .heroSide{
+      padding: 18px;
+      display:flex;
+      flex-direction:column;
+      gap: 12px;
     }
 
-    /* ====== Feature grid ====== */
-    .grid{
-      display:grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 16px;
+    .mini{
+      padding: 16px;
+      border-radius: 18px;
+      border: 1px solid rgba(255,255,255,.14);
+      background: rgba(255,255,255,.04);
+      transition: transform .25s ease, border-color .25s ease, background .25s ease;
+      transform-style: preserve-3d;
     }
-    @media (max-width: 900px){
-      .grid{ grid-template-columns: 1fr; }
-    }
-
-    .card{
-      border-radius: 22px;
-      background: rgba(255,255,255,.05);
-      border: 1px solid rgba(255,255,255,.10);
-      padding: 18px 18px 16px;
-      box-shadow: 0 16px 55px rgba(0,0,0,.25);
-      transform: translateY(10px);
-      opacity: 0;
-      animation: rise .9s ease forwards;
-    }
-    .card:nth-child(1){ animation-delay: .12s; }
-    .card:nth-child(2){ animation-delay: .20s; }
-    .card:nth-child(3){ animation-delay: .28s; }
-
-    @keyframes rise{
-      to{ transform: translateY(0); opacity: 1; }
-    }
-
-    .icon{
-      width:40px; height:40px;
-      border-radius: 14px;
+    .mini:hover{
+      transform: translateY(-3px);
       background: rgba(255,255,255,.06);
-      border:1px solid rgba(255,255,255,.10);
+      border-color: rgba(255,255,255,.22);
+    }
+    .mini h3{
+      margin: 0 0 8px;
+      font-size: 14px;
+      color: rgba(255,255,255,.86);
+      letter-spacing:.2px;
+    }
+    .mini p{
+      margin:0;
+      color: rgba(255,255,255,.62);
+      font-size: 13px;
+      line-height: 1.55;
+    }
+
+    /* --- grid section --- */
+    .grid{
+      margin-top: 26px;
       display:grid;
-      place-items:center;
-      margin-bottom: 12px;
+      grid-template-columns: repeat(12, 1fr);
+      gap: 14px;
+    }
+    .card{
+      grid-column: span 4;
+      padding: 18px;
+      border-radius: var(--radius);
+      border: 1px solid rgba(255,255,255,.14);
+      background: rgba(255,255,255,.04);
+      backdrop-filter: blur(10px);
+      box-shadow: 0 14px 50px rgba(0,0,0,.22);
+      transition: transform .25s ease, border-color .25s ease, background .25s ease;
+      transform-style: preserve-3d;
       position:relative;
       overflow:hidden;
     }
-    .icon::before{
+    .card::before{
       content:"";
-      position:absolute;
-      inset:-70%;
-      background: conic-gradient(from 180deg, #8E54FF, #00D0FF, #FF4CA0, #8E54FF);
-      animation: spin 2.9s linear infinite;
-      opacity:.7;
+      position:absolute; inset:-1px;
+      background: radial-gradient(600px 220px at 10% 10%, rgba(34,211,238,.12), transparent 60%),
+                  radial-gradient(600px 220px at 90% 0%, rgba(124,58,237,.12), transparent 60%);
+      pointer-events:none;
+      opacity:.9;
     }
-    .icon span{
-      position:relative;
-      z-index:1;
-      font-size:18px;
-      filter: drop-shadow(0 10px 25px rgba(0,0,0,.35));
+    .card:hover{
+      transform: translateY(-6px);
+      border-color: rgba(255,255,255,.22);
+      background: rgba(255,255,255,.06);
     }
-    @keyframes spin{ to{ transform: rotate(360deg); } }
-
-    .card h3{
-      margin: 0 0 8px;
-      font-size: 16px;
-      letter-spacing: .1px;
+    .badge{
+      display:inline-flex; align-items:center; gap:8px;
+      font-size: 12px;
+      color: rgba(255,255,255,.72);
+      border: 1px solid rgba(255,255,255,.12);
+      border-radius: 999px;
+      padding: 7px 10px;
+      background: rgba(255,255,255,.03);
+      margin-bottom: 10px;
+    }
+    .badge .bDot{
+      width:7px; height:7px; border-radius:999px;
+      background: rgba(124,58,237,.95);
+      box-shadow: 0 0 14px rgba(124,58,237,.35);
+    }
+    .card h2{
+      margin: 0 0 10px;
+      font-size: 18px;
+      letter-spacing: -.2px;
     }
     .card p{
-      margin: 0;
-      font-size: 13.5px;
-      color: rgba(234,240,255,.72);
-      line-height: 1.6;
+      margin:0;
+      color: rgba(255,255,255,.64);
+      font-size: 14px;
+      line-height: 1.65;
     }
 
-    /* ====== Footer ====== */
+    /* --- footer --- */
     footer{
-      margin-top: 10px;
-      color: rgba(234,240,255,.55);
-      font-size: 12.5px;
+      margin-top: 28px;
+      padding: 18px 6px;
+      color: rgba(255,255,255,.55);
+      font-size: 13px;
       display:flex;
+      align-items:center;
       justify-content:space-between;
-      gap: 10px;
+      gap:10px;
       flex-wrap:wrap;
-      opacity: .95;
+    }
+    .pill{
+      padding: 8px 12px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,.12);
+      background: rgba(255,255,255,.03);
     }
 
-    /* ====== Reduced motion ====== */
+    /* --- reveal animations --- */
+    .reveal{
+      opacity:0;
+      transform: translateY(14px);
+      filter: blur(6px);
+      transition: opacity .7s ease, transform .7s ease, filter .7s ease;
+    }
+    .reveal.show{
+      opacity:1;
+      transform: translateY(0);
+      filter: blur(0);
+    }
+
+    /* --- responsive --- */
+    @media (max-width: 980px){
+      .hero{ grid-template-columns: 1fr; }
+      .grid{ grid-template-columns: repeat(6, 1fr); }
+      .card{ grid-column: span 6; }
+    }
+    @media (max-width: 560px){
+      .heroMain{ padding: 30px 22px 22px; }
+      .nav{ padding: 12px 12px; }
+      .links{ display:none; }
+      .grid{ grid-template-columns: repeat(1, 1fr); }
+      .card{ grid-column: span 1; }
+      .cursorDot, .cursorRing, .orb{ display:none; }
+    }
+
+    /* --- reduced motion friendly --- */
     @media (prefers-reduced-motion: reduce){
-      .blob, .logo::after, .meter > i, .icon::before{ animation: none !important; }
-      .hero, .card{ transition: none !important; }
+      .sheen, .noise{ animation: none !important; }
+      .reveal{ transition:none !important; opacity:1; transform:none; filter:none; }
+      .btn, .chip, .card, .mini{ transition:none !important; }
     }
   </style>
 </head>
-
 <body>
-  <div class="cursor-glow" id="cursorGlow"></div>
-  <div class="blob b1"></div>
-  <div class="blob b2"></div>
-  <div class="blob b3"></div>
+  <div class="sheen" aria-hidden="true"></div>
+  <canvas id="trailCanvas" aria-hidden="true"></canvas>
+  <div class="noise" aria-hidden="true"></div>
+
+  <div class="orb" aria-hidden="true"></div>
+  <div class="cursorRing" aria-hidden="true"></div>
+  <div class="cursorDot" aria-hidden="true"></div>
 
   <div class="wrap">
     <div class="container">
-      <header>
+      <div class="nav reveal">
         <div class="brand">
           <div class="logo" aria-hidden="true"></div>
-          <div>
-            <b>Neon Motion</b><br/>
-            <span class="small">animations • glow • 3D tilt</span>
-          </div>
+          <div>Nova<span style="opacity:.65">.studio</span></div>
         </div>
-
-        <div class="nav">
-          <div class="chip" data-scroll="#features">Фичи</div>
-          <div class="chip" data-scroll="#cta">Ссылка другу</div>
-          <div class="chip" id="toggleQuality">Качество: High</div>
+        <div class="links" aria-hidden="true">
+          <div class="chip">Interactive UI</div>
+          <div class="chip">Motion Design</div>
+          <div class="chip">Modern Glass</div>
+          <div class="chip">Performance</div>
         </div>
-      </header>
+        <button class="btn btnPrimary" data-magnetic id="copyLinkBtn">Скопировать ссылку (когда задеплоишь)</button>
+      </div>
 
-      <section class="hero" id="hero">
-        <div class="hero-inner">
-          <div>
-            <div class="badge">
-              <span class="dot"></span>
-              <span>Живые анимации + слежение за мышкой</span>
-            </div>
-
+      <section class="hero">
+        <div class="panel tilt reveal" id="heroTilt">
+          <div class="heroMain">
+            <div class="kicker"><span class="dot"></span> Live cursor + particles + tilt • чистый HTML/CSS/JS</div>
             <h1>
-              Сделано чтобы <span class="grad">вау</span> было с первого взгляда.
+              Современный сайт<br/>
+              <span class="gradText">с эффектами “вау”</span>
             </h1>
-
             <p class="lead">
-              Курсор двигает подсветку, карточка наклоняется как 3D, кнопки ловят блик от мышки,
-              а на фоне плавают неоновые блобы. Всё на чистом HTML/CSS/JS — легко залить на Netlify и кинуть ссылку.
+              Двигай мышкой — смотри как курсор создаёт “энергию”: орб плавно догоняет, частицы рисуют след,
+              карточки реагируют на движение (tilt), кнопки магнитятся. Всё выглядит профессионально и аккуратно.
             </p>
 
-            <div class="actions" id="cta">
-              <button class="btn primary" id="btnBoom">Запусти эффект ✨</button>
-              <button class="btn" id="btnCopy">Скопировать “ссылку” (демо)</button>
-              <button class="btn" data-scroll="#features">Показать фичи ↓</button>
+            <div class="actions">
+              <button class="btn btnPrimary" data-magnetic id="pulseBtn">Запустить микро-эффект</button>
+              <button class="btn" data-magnetic id="toggleBtn">Тумблер: усилить эффекты</button>
+              <span class="pill">💡 Подсказка: наведи на карточки</span>
+            </div>
+
+            <div class="meta">
+              <div>⚡ <b>60fps</b> анимации (requestAnimationFrame)</div>
+              <div>🧊 <b>Glass</b> UI + glow</div>
+              <div>🧠 <b>UX</b>: prefers-reduced-motion</div>
             </div>
           </div>
+        </div>
 
-          <aside class="panel">
-            <div class="small">Сигнал / стиль / “живость”</div>
-            <div class="meter"><i></i></div>
-            <div class="small">
-              Подведи мышку к карточке — она “дышит” и наклоняется. На мобиле будет мягкий вариант (без бешеных эффектов).
+        <aside class="panel tilt reveal" id="sideTilt">
+          <div class="heroSide">
+            <div class="mini">
+              <h3>🎯 Профессиональный стиль</h3>
+              <p>Стеклянные панели, аккуратные тени, мягкие градиенты, микро-интеракции.</p>
             </div>
-            <div class="small">
-              Нажми “Запусти эффект” — увидишь маленький фейерверк частиц.
+            <div class="mini">
+              <h3>🖱️ “Живая” мышка</h3>
+              <p>Кольцо, точка и орб с инерцией + частицы-трейл на canvas.</p>
             </div>
-          </aside>
+            <div class="mini">
+              <h3>🧱 Готово для портфолио</h3>
+              <p>Хочешь — добавим секции “Projects”, “About”, форму контакта, и это будет прям студийно.</p>
+            </div>
+          </div>
+        </aside>
+      </section>
+
+      <section class="grid">
+        <div class="card tilt reveal">
+          <div class="badge"><span class="bDot"></span> Interaction</div>
+          <h2>Магнитные кнопки</h2>
+          <p>Кнопка чуть “тянется” к курсору. Это мелочь, но делает UI дорогим и живым.</p>
+        </div>
+        <div class="card tilt reveal">
+          <div class="badge"><span class="bDot" style="background:rgba(34,211,238,.95); box-shadow:0 0 14px rgba(34,211,238,.35)"></span> Motion</div>
+          <h2>Трейл-частицы</h2>
+          <p>Canvas рисует частицы с затуханием. Выглядит как “энергия” под пальцами.</p>
+        </div>
+        <div class="card tilt reveal">
+          <div class="badge"><span class="bDot" style="background:rgba(245,158,11,.95); box-shadow:0 0 14px rgba(245,158,11,.35)"></span> Design</div>
+          <h2>Современный стек-эффект</h2>
+          <p>Glassmorphism + подсветка + градиенты. Без перегруза, всё читабельно.</p>
         </div>
       </section>
 
-      <section class="grid" id="features">
-        <div class="card">
-          <div class="icon"><span>🧠</span></div>
-          <h3>Курсор-глоу следит за мышкой</h3>
-          <p>Мягкий неоновый свет плывёт за курсором и подсвечивает фон.</p>
-        </div>
-        <div class="card">
-          <div class="icon"><span>🌀</span></div>
-          <h3>3D наклон (tilt) карточки</h3>
-          <p>Карточка реагирует на положение курсора — выглядит как настоящая глубина.</p>
-        </div>
-        <div class="card">
-          <div class="icon"><span>⚡</span></div>
-          <h3>Блик на кнопках от мышки</h3>
-          <p>Навёл — и свет “протекает” по кнопке в точке курсора.</p>
-        </div>
-      </section>
-
-      <footer>
-        <span>© Neon Motion</span>
-        <span>Сделано на чистом фронте — идеально для Netlify / GitHub Pages</span>
+      <footer class="reveal">
+        <div class="pill">Nova • interactive landing</div>
+        <div class="pill">Сделано чистым HTML/CSS/JS</div>
       </footer>
     </div>
   </div>
 
-  <canvas id="fx" style="position:fixed;inset:0;pointer-events:none;z-index:2;"></canvas>
-
   <script>
-    const hero = document.getElementById('hero');
-    const glow = document.getElementById('cursorGlow');
-    const fx = document.getElementById('fx');
-    const ctx = fx.getContext('2d');
+    // ===== helpers =====
+    const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+    const prefersReduced = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-    // resize canvas
-    function resize(){
-      fx.width = window.innerWidth * devicePixelRatio;
-      fx.height = window.innerHeight * devicePixelRatio;
-      ctx.setTransform(devicePixelRatio,0,0,devicePixelRatio,0,0);
-    }
-    window.addEventListener('resize', resize);
-    resize();
+    // ===== reveal on scroll =====
+    const io = new IntersectionObserver((entries)=>{
+      entries.forEach(e=>{
+        if(e.isIntersecting) e.target.classList.add("show");
+      });
+    }, { threshold: 0.12 });
+    document.querySelectorAll(".reveal").forEach(el=>io.observe(el));
 
-    // smooth cursor follower
-    let mx = window.innerWidth/2, my = window.innerHeight/2;
-    let gx = mx, gy = my;
+    // ===== cursor + orb follow =====
+    const dot = document.querySelector(".cursorDot");
+    const ring = document.querySelector(".cursorRing");
+    const orb  = document.querySelector(".orb");
 
-    const isTouch = matchMedia('(pointer: coarse)').matches;
-    if(!isTouch) glow.style.opacity = '1';
+    const pointer = {
+      x: window.innerWidth * 0.5,
+      y: window.innerHeight * 0.45,
+      tx: window.innerWidth * 0.5,
+      ty: window.innerHeight * 0.45,
+      active: false,
+      boost: false
+    };
 
-    window.addEventListener('pointermove', (e) => {
-      mx = e.clientX; my = e.clientY;
+    window.addEventListener("pointermove", (e)=>{
+      pointer.tx = e.clientX;
+      pointer.ty = e.clientY;
+      pointer.active = true;
+    }, { passive:true });
 
-      // buttons highlight position
-      const target = e.target.closest?.('.btn');
-      if(target){
-        const r = target.getBoundingClientRect();
-        const bx = ((e.clientX - r.left) / r.width) * 100;
-        const by = ((e.clientY - r.top) / r.height) * 100;
-        target.style.setProperty('--bx', bx + '%');
-        target.style.setProperty('--by', by + '%');
+    window.addEventListener("pointerdown", ()=>{
+      ring.style.transform += " scale(0.9)";
+    });
+    window.addEventListener("pointerup", ()=>{
+      // reset scale by next RAF anyway
+    });
+
+    // Smooth follower positions
+    let dotX = pointer.x, dotY = pointer.y;
+    let ringX = pointer.x, ringY = pointer.y;
+    let orbX  = pointer.x, orbY  = pointer.y;
+
+    function animateCursor(){
+      // in case no pointer yet, slowly float in center
+      if(!pointer.active){
+        pointer.tx = window.innerWidth * 0.5;
+        pointer.ty = window.innerHeight * 0.45;
       }
 
-      // hero gradient follow
-      const rr = hero.getBoundingClientRect();
-      const hx = ((e.clientX - rr.left) / rr.width) * 100;
-      const hy = ((e.clientY - rr.top) / rr.height) * 100;
-      hero.style.setProperty('--mx', hx + '%');
-      hero.style.setProperty('--my', hy + '%');
-    });
+      // smoothing factors
+      const dS = prefersReduced ? 0.6 : 0.35;
+      const rS = prefersReduced ? 0.22 : 0.16;
+      const oS = prefersReduced ? 0.08 : (pointer.boost ? 0.07 : 0.05);
 
-    // animate glow to mouse smoothly
-    function tick(){
-      gx += (mx - gx) * 0.12;
-      gy += (my - gy) * 0.12;
-      glow.style.left = gx + 'px';
-      glow.style.top  = gy + 'px';
-      requestAnimationFrame(tick);
+      pointer.x += (pointer.tx - pointer.x) * dS;
+      pointer.y += (pointer.ty - pointer.y) * dS;
+
+      dotX  += (pointer.x - dotX) * 0.55;
+      dotY  += (pointer.y - dotY) * 0.55;
+
+      ringX += (pointer.x - ringX) * rS;
+      ringY += (pointer.y - ringY) * rS;
+
+      orbX  += (pointer.x - orbX) * oS;
+      orbY  += (pointer.y - orbY) * oS;
+
+      dot.style.transform  = `translate3d(${dotX-4}px, ${dotY-4}px, 0)`;
+      ring.style.transform = `translate3d(${ringX-21}px, ${ringY-21}px, 0)`;
+      orb.style.transform  = `translate3d(${orbX-70}px, ${orbY-70}px, 0)`;
+
+      requestAnimationFrame(animateCursor);
     }
-    tick();
+    requestAnimationFrame(animateCursor);
 
-    // 3D tilt
-    let tiltEnabled = !isTouch;
-    hero.addEventListener('pointermove', (e) => {
-      if(!tiltEnabled) return;
-      const r = hero.getBoundingClientRect();
-      const x = (e.clientX - r.left) / r.width - 0.5;
-      const y = (e.clientY - r.top) / r.height - 0.5;
-      const rx = (-y * 10).toFixed(2);
-      const ry = ( x * 12).toFixed(2);
-      hero.style.transform = `perspective(900px) rotateX(${rx}deg) rotateY(${ry}deg)`;
-    });
-    hero.addEventListener('pointerleave', () => {
-      hero.style.transform = 'perspective(900px) rotateX(0deg) rotateY(0deg)';
-    });
+    // ===== particle trail (canvas) =====
+    const canvas = document.getElementById("trailCanvas");
+    const ctx = canvas.getContext("2d", { alpha:true });
 
-    // smooth scroll chips/buttons
-    document.addEventListener('click', (e) => {
-      const el = e.target.closest('[data-scroll]');
-      if(!el) return;
-      const sel = el.getAttribute('data-scroll');
-      const target = document.querySelector(sel);
-      if(target) target.scrollIntoView({ behavior:'smooth', block:'start' });
-    });
+    function resize(){
+      const dpr = Math.min(2, window.devicePixelRatio || 1);
+      canvas.width  = Math.floor(window.innerWidth * dpr);
+      canvas.height = Math.floor(window.innerHeight * dpr);
+      canvas.style.width  = window.innerWidth + "px";
+      canvas.style.height = window.innerHeight + "px";
+      ctx.setTransform(dpr,0,0,dpr,0,0);
+    }
+    window.addEventListener("resize", resize);
+    resize();
 
-    // ======= Particles FX =======
     const particles = [];
-    function addBurst(x,y){
-      const count = 70;
-      for(let i=0;i<count;i++){
-        const a = Math.random() * Math.PI * 2;
-        const s = 2 + Math.random()*5;
+    let lastSpawn = 0;
+
+    function spawn(x, y){
+      const n = pointer.boost ? 5 : 3;
+      for(let i=0;i<n;i++){
+        const a = Math.random()*Math.PI*2;
+        const sp = (pointer.boost ? 0.9 : 0.6) + Math.random()*1.0;
         particles.push({
-          x,y,
-          vx: Math.cos(a)*s,
-          vy: Math.sin(a)*s - 1.2,
-          life: 70 + Math.random()*40,
-          r: 1 + Math.random()*2.2
+          x, y,
+          vx: Math.cos(a)*sp,
+          vy: Math.sin(a)*sp,
+          r: (pointer.boost ? 2.6 : 2.0) + Math.random()*2.2,
+          life: (pointer.boost ? 30 : 22) + Math.random()*18,
+          t: 0,
+          hue: 190 + Math.random()*80 // cyan->purple-ish
         });
       }
     }
 
-    function draw(){
-      ctx.clearRect(0,0,window.innerWidth,window.innerHeight);
-      for(let i=particles.length-1;i>=0;i--){
-        const p = particles[i];
-        p.x += p.vx;
-        p.y += p.vy;
-        p.vy += 0.06;
-        p.life -= 1;
+    function render(){
+      if(!prefersReduced){
+        ctx.clearRect(0,0,canvas.width,canvas.height);
 
-        const t = Math.max(p.life/110, 0);
-        ctx.globalAlpha = t;
-        // no explicit color setting instructions? (we can still set, but keep it simple)
-        ctx.fillStyle = `rgba(234,240,255,${0.9*t})`;
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, p.r, 0, Math.PI*2);
-        ctx.fill();
+        // slight fade for nice trails
+        ctx.fillStyle = "rgba(0,0,0,0.08)";
+        ctx.fillRect(0,0,window.innerWidth, window.innerHeight);
 
-        if(p.life <= 0) particles.splice(i,1);
+        const now = performance.now();
+        if(pointer.active && now - lastSpawn > (pointer.boost ? 10 : 16)){
+          spawn(pointer.x, pointer.y);
+          lastSpawn = now;
+        }
+
+        for(let i=particles.length-1;i>=0;i--){
+          const p = particles[i];
+          p.t += 1;
+          p.life -= 1;
+          p.x += p.vx;
+          p.y += p.vy;
+          p.vx *= 0.98;
+          p.vy *= 0.98;
+
+          const alpha = clamp(p.life/42, 0, 1);
+          ctx.beginPath();
+          ctx.fillStyle = `hsla(${p.hue}, 95%, 65%, ${alpha*0.65})`;
+          ctx.shadowBlur = 18;
+          ctx.shadowColor = `hsla(${p.hue}, 95%, 65%, ${alpha*0.25})`;
+          ctx.arc(p.x, p.y, p.r, 0, Math.PI*2);
+          ctx.fill();
+
+          if(p.life <= 0) particles.splice(i,1);
+        }
       }
-      ctx.globalAlpha = 1;
-      requestAnimationFrame(draw);
+      requestAnimationFrame(render);
     }
-    draw();
+    requestAnimationFrame(render);
 
-    document.getElementById('btnBoom').addEventListener('click', () => {
-      addBurst(window.innerWidth*0.32, window.innerHeight*0.42);
-      addBurst(window.innerWidth*0.62, window.innerHeight*0.50);
+    // ===== tilt cards =====
+    function attachTilt(el){
+      const max = 10; // degrees
+      let rect = null;
+
+      el.addEventListener("pointerenter", ()=>{
+        rect = el.getBoundingClientRect();
+        el.style.transition = "transform .12s ease";
+        setTimeout(()=> el.style.transition = "", 120);
+      });
+
+      el.addEventListener("pointermove", (e)=>{
+        if(!rect || prefersReduced) return;
+        const px = (e.clientX - rect.left) / rect.width;
+        const py = (e.clientY - rect.top) / rect.height;
+        const rx = (py - 0.5) * -2 * max;
+        const ry = (px - 0.5) *  2 * max;
+        el.style.transform = `perspective(900px) rotateX(${rx}deg) rotateY(${ry}deg) translateY(-2px)`;
+      });
+
+      el.addEventListener("pointerleave", ()=>{
+        el.style.transition = "transform .25s ease";
+        el.style.transform = "perspective(900px) rotateX(0deg) rotateY(0deg) translateY(0px)";
+        setTimeout(()=> el.style.transition = "", 250);
+      });
+    }
+    document.querySelectorAll(".tilt").forEach(attachTilt);
+
+    // ===== magnetic buttons =====
+    function attachMagnetic(el){
+      const strength = 16;
+      let rect;
+
+      el.addEventListener("pointerenter", ()=> rect = el.getBoundingClientRect());
+      el.addEventListener("pointermove", (e)=>{
+        if(!rect || prefersReduced) return;
+        const dx = e.clientX - (rect.left + rect.width/2);
+        const dy = e.clientY - (rect.top  + rect.height/2);
+        const mx = clamp(dx / rect.width, -0.5, 0.5) * strength;
+        const my = clamp(dy / rect.height, -0.5, 0.5) * strength;
+        el.style.transform = `translate3d(${mx}px, ${my}px, 0)`;
+      });
+      el.addEventListener("pointerleave", ()=>{
+        el.style.transition = "transform .22s ease";
+        el.style.transform = "translate3d(0,0,0)";
+        setTimeout(()=> el.style.transition = "", 220);
+      });
+    }
+    document.querySelectorAll("[data-magnetic]").forEach(attachMagnetic);
+
+    // ===== UI buttons =====
+    const toggleBtn = document.getElementById("toggleBtn");
+    const pulseBtn  = document.getElementById("pulseBtn");
+    const copyLinkBtn = document.getElementById("copyLinkBtn");
+
+    toggleBtn.addEventListener("click", ()=>{
+      pointer.boost = !pointer.boost;
+      toggleBtn.textContent = pointer.boost ? "Тумблер: эффекты ВКЛ x2" : "Тумблер: усилить эффекты";
+      // visual hint on orb
+      orb.style.opacity = pointer.boost ? "0.9" : "0.75";
     });
 
-    // demo copy
-    document.getElementById('btnCopy').addEventListener('click', async () => {
-      const text = "Сюда вставишь свою реальную ссылку после деплоя (Netlify/GitHub Pages).";
+    pulseBtn.addEventListener("click", ()=>{
+      // quick pulse around cursor
+      ring.style.transition = "transform .12s ease";
+      ring.style.transform = `translate3d(${ringX-21}px, ${ringY-21}px, 0) scale(1.35)`;
+      setTimeout(()=>{
+        ring.style.transform = `translate3d(${ringX-21}px, ${ringY-21}px, 0) scale(1)`;
+        setTimeout(()=> ring.style.transition = "", 130);
+      }, 130);
+
+      // spawn a burst
+      for(let i=0;i<28;i++) spawn(pointer.x, pointer.y);
+    });
+
+    copyLinkBtn.addEventListener("click", async ()=>{
+      const url = location.href;
       try{
-        await navigator.clipboard.writeText(text);
-        alert("Скопировал! Теперь просто замени текст на реальную ссылку после публикации 😉");
+        await navigator.clipboard.writeText(url);
+        copyLinkBtn.textContent = "Ссылка скопирована ✅";
+        setTimeout(()=> copyLinkBtn.textContent = "Скопировать ссылку (когда задеплоишь)", 1500);
       }catch{
-        alert(text);
+        alert("Не получилось скопировать автоматически. Скопируй вручную из адресной строки: " + url);
       }
     });
-
-    // Quality toggle (turn off tilt + soften glow)
-    const toggle = document.getElementById('toggleQuality');
-    toggle.addEventListener('click', () => {
-      if(toggle.textContent.includes('High')){
-        toggle.textContent = 'Качество: Low';
-        tiltEnabled = false;
-        hero.style.transform = 'none';
-        glow.style.opacity = '0.55';
-        document.querySelectorAll('.blob').forEach(b => b.style.opacity = '0.22');
-      }else{
-        toggle.textContent = 'Качество: High';
-        tiltEnabled = !isTouch;
-        glow.style.opacity = isTouch ? '0' : '1';
-        document.querySelectorAll('.blob').forEach(b => b.style.opacity = '');
-      }
-    });
-
-    // if touch device - disable glow/tilt
-    if(isTouch){
-      glow.style.opacity = '0';
-      tiltEnabled = false;
-    }
   </script>
 </body>
 </html>
-
